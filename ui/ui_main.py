@@ -35,16 +35,18 @@ class Ui_MainWindow(object):
         self.rootLayout.setContentsMargins(0, 0, 0, 0)
         self.headerFrame = QFrame(self.centralwidget)
         self.headerFrame.setObjectName(u"headerFrame")
-        self.headerFrame.setMinimumSize(QSize(0, 78))
-        self.headerFrame.setMaximumSize(QSize(16777215, 78))
+        self.headerFrame.setMinimumSize(QSize(0, 96))
+        self.headerFrame.setMaximumSize(QSize(16777215, 96))
         self.headerLayout = QHBoxLayout(self.headerFrame)
         self.headerLayout.setObjectName(u"headerLayout")
         self.headerLayout.setContentsMargins(22, -1, 22, -1)
-        self.brandMark = QLabel(self.headerFrame)
-        self.brandMark.setObjectName(u"brandMark")
-        self.brandMark.setAlignment(Qt.AlignCenter)
+        self.brandLogo = QLabel(self.headerFrame)
+        self.brandLogo.setObjectName(u"brandLogo")
+        self.brandLogo.setMinimumSize(QSize(220, 66))
+        self.brandLogo.setMaximumSize(QSize(220, 66))
+        self.brandLogo.setAlignment(Qt.AlignCenter)
 
-        self.headerLayout.addWidget(self.brandMark)
+        self.headerLayout.addWidget(self.brandLogo)
 
         self.titleLayout = QVBoxLayout()
         self.titleLayout.setSpacing(1)
@@ -66,11 +68,11 @@ class Ui_MainWindow(object):
 
         self.headerLayout.addItem(self.headerSpacer)
 
-        self.demoBadge = QLabel(self.headerFrame)
-        self.demoBadge.setObjectName(u"demoBadge")
-        self.demoBadge.setAlignment(Qt.AlignCenter)
+        self.modeBadge = QLabel(self.headerFrame)
+        self.modeBadge.setObjectName(u"modeBadge")
+        self.modeBadge.setAlignment(Qt.AlignCenter)
 
-        self.headerLayout.addWidget(self.demoBadge)
+        self.headerLayout.addWidget(self.modeBadge)
 
         self.clockLabel = QLabel(self.headerFrame)
         self.clockLabel.setObjectName(u"clockLabel")
@@ -259,10 +261,10 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"\u9f7f\u8f6e\u7bb1\u5bff\u547d\u6d4b\u8bd5\u53f0", None))
-        self.brandMark.setText(QCoreApplication.translate("MainWindow", u"G", None))
+        self.brandLogo.setText("")
         self.titleLabel.setText(QCoreApplication.translate("MainWindow", u"\u9f7f\u8f6e\u7bb1\u5bff\u547d\u6d4b\u8bd5\u53f0", None))
         self.subtitleLabel.setText(QCoreApplication.translate("MainWindow", u"GEARBOX ENDURANCE TEST PLATFORM \u00b7 6 STATIONS", None))
-        self.demoBadge.setText(QCoreApplication.translate("MainWindow", u"\u754c\u9762\u6f14\u793a \u00b7 \u6a21\u62df\u6570\u636e", None))
+        self.modeBadge.setText(QCoreApplication.translate("MainWindow", u"\u5b9e\u65f6\u8bbe\u5907 \u00b7 FINS/UDP", None))
         self.clockLabel.setText(QCoreApplication.translate("MainWindow", u"2026-10-10 14:30:00", None))
         self.plcStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\u25cf PLC \u672a\u8fde\u63a5", None))
         self.settingsButton.setText(QCoreApplication.translate("MainWindow", u"\u7cfb\u7edf\u8bbe\u7f6e", None))

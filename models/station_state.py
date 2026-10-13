@@ -1,11 +1,9 @@
-"""六工位寿命测试的界面状态模型。"""
+"""六工位齿轮箱寿命测试的实时状态模型。"""
 
 from __future__ import annotations
 
-import math
-import random
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Mapping
 
 
 @dataclass
@@ -21,31 +19,31 @@ class StationParameters:
 
 @dataclass
 class StationRealtime:
-    """单工位实时采样值。"""
+    """单工位从 PLC 读取的实时采样值。"""
 
     speed_rpm: float = 0.0
     current_a: float = 0.0
     pressure: float = 0.0
     torque_nm: float = 0.0
-    temperature_1: float = 24.0
-    temperature_2: float = 24.0
-    temperature_3: float = 24.0
+    temperature_1: float = 0.0
+    temperature_2: float = 0.0
+    temperature_3: float = 0.0
 
 
 @dataclass
 class StationState:
-    """用于首版界面演示的轻量状态与全程历史。"""
+    """单工位状态与用于界面缩略图的抽样历史。"""
 
     MAX_HISTORY_POINTS = 20_000
 
     station_id: int
-    serial_number: str
+    serial_number: str = ""
     parameters: StationParameters = field(default_factory=StationParameters)
     realtime: StationRealtime = field(default_factory=StationRealtime)
-    enabled: bool = True
+    connected: bool = False
+    enabled: bool = False
     running: bool = False
     warning: bool = False
-    demo_warning: bool = False
     elapsed_seconds: int = 0
     sample_count: int = 0
     history: Dict[str, List[float]] = field(
@@ -57,23 +55,23 @@ class StationState:
             "temperature": [],
         }
     )
-    _random: random.Random = field(init=False, repr=False)
-
-    def __post_init__(self) -> None:
-        self._random = random.Random(1000 + self.station_id)
 
     @property
     def status_text(self) -> str:
+        if not self.connected:
+            return "PLC 未连接"
         if self.warning:
             return "温度告警"
         if self.running:
             return "测试运行中"
         if self.enabled:
             return "待机"
-        return "已停用"
+        return "工位未使能"
 
     @property
     def status_key(self) -> str:
+        if not self.connected:
+            return "disconnected"
         if self.warning:
             return "warning"
         if self.running:
@@ -82,52 +80,73 @@ class StationState:
             return "standby"
         return "disabled"
 
-    def simulate_tick(self, record: bool = True) -> None:
-        """生成确定性的界面演示数据；后续由 PLC worker 替换。"""
+    def mark_disconnected(self) -> None:
+        """通信中断后立即清除可能造成误判的运行状态。"""
 
-        if self.running:
-            self.elapsed_seconds += 1
-            phase = self.elapsed_seconds / 12.0 + self.station_id * 0.7
-            noise = self._random.uniform(-1.0, 1.0)
-            target_speed = float(self.parameters.speed_rpm)
-            target_torque = self.parameters.torque_target
-            self.realtime.speed_rpm = max(0.0, target_speed + math.sin(phase) * 18 + noise * 4)
-            self.realtime.torque_nm = max(0.0, target_torque + math.sin(phase * 0.55) * 0.12 + noise * 0.03)
-            self.realtime.current_a = max(0.0, 0.75 + target_torque * 0.31 + math.sin(phase * 0.8) * 0.08)
-            self.realtime.pressure = 112.0 + self.station_id * 3.2 + math.sin(phase * 0.42) * 2.4
-            heat_bias = 34.0 if self.demo_warning else 0.0
-            warm_up = min(14.0, self.elapsed_seconds / 38.0)
-            self.realtime.temperature_1 = 37.0 + self.station_id * 1.6 + warm_up + heat_bias + math.sin(phase * 0.22)
-            self.realtime.temperature_2 = 34.0 + self.station_id * 1.3 + warm_up * 0.82 + heat_bias * 0.82 + math.sin(phase * 0.19)
-            self.realtime.temperature_3 = 32.0 + self.station_id * 1.1 + warm_up * 0.68 + heat_bias * 0.70 + math.sin(phase * 0.17)
-            self.sample_count += 1
-        else:
-            phase = self.sample_count / 20.0 + self.station_id
-            ambient = 24.0 + math.sin(phase) * 0.25
-            self.realtime = StationRealtime(
-                temperature_1=ambient,
-                temperature_2=ambient - 0.3,
-                temperature_3=ambient - 0.5,
+        self.connected = False
+        self.enabled = False
+        self.running = False
+        self.warning = False
+
+    def apply_plc_snapshot(self, snapshot: Mapping[str, object], record: bool = True) -> None:
+        """应用一次真实 PLC 快照，不生成或补造任何测量值。"""
+
+        self.connected = True
+        self.enabled = bool(snapshot.get("enabled", False))
+        self.running = bool(snapshot.get("running", False))
+        self.elapsed_seconds = max(0, int(float(snapshot.get("elapsed_seconds", 0))))
+        self.realtime = StationRealtime(
+            speed_rpm=float(snapshot.get("speed_rpm", 0.0)),
+            current_a=float(snapshot.get("current_a", 0.0)),
+            pressure=float(snapshot.get("pressure", 0.0)),
+            torque_nm=float(snapshot.get("torque_nm", 0.0)),
+            temperature_1=float(snapshot.get("temperature_1", 0.0)),
+            temperature_2=float(snapshot.get("temperature_2", 0.0)),
+            temperature_3=float(snapshot.get("temperature_3", 0.0)),
+        )
+
+        plc_parameters = snapshot.get("parameters")
+        if isinstance(plc_parameters, Mapping):
+            self.parameters = StationParameters(
+                speed_rpm=int(float(plc_parameters.get("speed_rpm", self.parameters.speed_rpm))),
+                torque_target=float(plc_parameters.get("torque_target", self.parameters.torque_target)),
+                pressure_compensation=float(
+                    plc_parameters.get(
+                        "pressure_compensation", self.parameters.pressure_compensation
+                    )
+                ),
+                temperature_high=float(
+                    plc_parameters.get("temperature_high", self.parameters.temperature_high)
+                ),
+                temperature_low=float(
+                    plc_parameters.get("temperature_low", self.parameters.temperature_low)
+                ),
             )
 
-        highest_temperature = max(
+        temperatures = (
             self.realtime.temperature_1,
             self.realtime.temperature_2,
             self.realtime.temperature_3,
         )
-        self.warning = self.running and highest_temperature > self.parameters.temperature_high
+        self.warning = self.running and (
+            max(temperatures) > self.parameters.temperature_high
+            or min(temperatures) < self.parameters.temperature_low
+        )
 
         if record and self.running:
+            self.sample_count += 1
             self._append_history()
 
     def _append_history(self) -> None:
-        self.history["minutes"].append(self.sample_count / 60.0)
+        self.history["minutes"].append(self.elapsed_seconds / 60.0)
         speed_base = max(float(self.parameters.speed_rpm), 1.0)
         torque_base = max(self.parameters.torque_target, 0.1)
         temperature_base = max(self.parameters.temperature_high, 1.0)
         self.history["speed"].append(self.realtime.speed_rpm / speed_base * 100.0)
         self.history["current"].append(self.realtime.current_a / 3.5 * 100.0)
-        self.history["torque"].append(self.realtime.torque_nm / torque_base * 100.0)
+        self.history["torque"].append(
+            self.realtime.torque_nm / torque_base * 100.0
+        )
         self.history["temperature"].append(
             max(
                 self.realtime.temperature_1,
@@ -141,7 +160,7 @@ class StationState:
             self._compact_history()
 
     def _compact_history(self) -> None:
-        """对界面趋势做分层抽样，原始秒级数据仍完整保存在 CSV。"""
+        """界面趋势分层抽样；原始秒级数据仍完整保存在 CSV。"""
 
         for key, values in self.history.items():
             self.history[key] = values[::2]

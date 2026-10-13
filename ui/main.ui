@@ -16,12 +16,12 @@
     <property name="bottomMargin"><number>0</number></property>
     <item>
      <widget class="QFrame" name="headerFrame">
-      <property name="minimumSize"><size><width>0</width><height>78</height></size></property>
-      <property name="maximumSize"><size><width>16777215</width><height>78</height></size></property>
+      <property name="minimumSize"><size><width>0</width><height>96</height></size></property>
+      <property name="maximumSize"><size><width>16777215</width><height>96</height></size></property>
       <layout class="QHBoxLayout" name="headerLayout">
        <property name="leftMargin"><number>22</number></property>
        <property name="rightMargin"><number>22</number></property>
-       <item><widget class="QLabel" name="brandMark"><property name="text"><string>G</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
+       <item><widget class="QLabel" name="brandLogo"><property name="minimumSize"><size><width>220</width><height>66</height></size></property><property name="maximumSize"><size><width>220</width><height>66</height></size></property><property name="text"><string/></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
        <item>
         <layout class="QVBoxLayout" name="titleLayout">
          <property name="spacing"><number>1</number></property>
@@ -30,7 +30,7 @@
         </layout>
        </item>
        <item><spacer name="headerSpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
-       <item><widget class="QLabel" name="demoBadge"><property name="text"><string>界面演示 · 模拟数据</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
+       <item><widget class="QLabel" name="modeBadge"><property name="text"><string>实时设备 · FINS/UDP</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
        <item><widget class="QLabel" name="clockLabel"><property name="minimumSize"><size><width>142</width><height>34</height></size></property><property name="text"><string>2026-10-10 14:30:00</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
        <item><widget class="QLabel" name="plcStatusLabel"><property name="text"><string>● PLC 未连接</string></property></widget></item>
        <item><widget class="QPushButton" name="settingsButton"><property name="text"><string>系统设置</string></property></widget></item>

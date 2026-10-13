@@ -3,7 +3,7 @@
     "workbook": "地址内容.xlsx",
     "sheet": "Sheet1",
     "plc_symbol": "LabVIEWDB",
-    "note": "由用户提供的 Sysmac Studio 元素注释表整理；界面演示版不执行 PLC 写入。"
+    "note": "由用户提供的 Sysmac Studio 元素注释表整理；用于 FINS/UDP 真实读写。"
   },
   "stations": [
     {

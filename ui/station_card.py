@@ -214,7 +214,7 @@ class StationCard(QFrame):
         self.setProperty("state", state.status_key)
         self.status_label.setProperty("state", state.status_key)
         self.status_label.setText(state.status_text)
-        self.elapsed_label.setText(state.elapsed_text())
+        self.elapsed_label.setText(state.elapsed_text() if state.connected else "--:--:--")
         if sync_parameters:
             self.serial_edit.setText(state.serial_number)
             self.speed_spin.setValue(state.parameters.speed_rpm)
@@ -222,16 +222,34 @@ class StationCard(QFrame):
             self.pressure_spin.setValue(state.parameters.pressure_compensation)
             self.temp_high_spin.setValue(state.parameters.temperature_high)
             self.temp_low_spin.setValue(state.parameters.temperature_low)
-        self._metrics["speed"].set_value(f"{state.realtime.speed_rpm:,.0f}")
-        self._metrics["current"].set_value(f"{state.realtime.current_a:.2f}")
-        self._metrics["torque"].set_value(f"{state.realtime.torque_nm:.2f}")
-        self._metrics["pressure"].set_value(f"{state.realtime.pressure:.1f}")
-        self._metrics["temperature_1"].set_value(f"{state.realtime.temperature_1:.1f}")
-        self._metrics["temperature_2"].set_value(f"{state.realtime.temperature_2:.1f}")
-        self._metrics["temperature_3"].set_value(f"{state.realtime.temperature_3:.1f}")
-        self._metrics["records"].set_value(f"{state.sample_count:,}")
-        self.start_button.setEnabled(not state.running)
-        self.stop_button.setEnabled(state.running)
+        if state.connected:
+            self._metrics["speed"].set_value(f"{state.realtime.speed_rpm:,.0f}")
+            self._metrics["current"].set_value(f"{state.realtime.current_a:.2f}")
+            self._metrics["torque"].set_value(f"{state.realtime.torque_nm:.2f}")
+            self._metrics["pressure"].set_value(f"{state.realtime.pressure:.1f}")
+            self._metrics["temperature_1"].set_value(
+                f"{state.realtime.temperature_1:.1f}"
+            )
+            self._metrics["temperature_2"].set_value(
+                f"{state.realtime.temperature_2:.1f}"
+            )
+            self._metrics["temperature_3"].set_value(
+                f"{state.realtime.temperature_3:.1f}"
+            )
+            self._metrics["records"].set_value(f"{state.sample_count:,}")
+        else:
+            for metric in self._metrics.values():
+                metric.set_value("--")
+
+        can_operate = state.connected and state.enabled
+        self.start_button.setEnabled(can_operate and not state.running)
+        self.stop_button.setEnabled(can_operate and state.running)
+        self.apply_button.setEnabled(can_operate and not state.running)
+        self.serial_edit.setEnabled(not state.running)
+        unavailable_hint = "" if state.connected else "PLC 未连接，设备操作已锁定"
+        self.start_button.setToolTip(unavailable_hint)
+        self.stop_button.setToolTip(unavailable_hint)
+        self.apply_button.setToolTip(unavailable_hint)
         self.style().unpolish(self)
         self.style().polish(self)
         self.status_label.style().unpolish(self.status_label)
