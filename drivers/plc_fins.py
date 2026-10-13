@@ -106,6 +106,13 @@ class FinsPlcDriver(BaseDevice):
         address = self._station_addresses(station_id)["bool"]["start_stop"]
         self._write_bool(address, running)
 
+    def set_station_enabled(self, station_id: int, enabled: bool) -> None:
+        """写入工位使能位；界面状态仍以 enabled_feedback 为准。"""
+
+        self._require_connected()
+        address = self._station_addresses(station_id)["bool"]["enable"]
+        self._write_bool(address, enabled)
+
     def write_station_parameters(
         self, station_id: int, values: Mapping[str, object]
     ) -> None:
@@ -185,8 +192,10 @@ class FinsPlcDriver(BaseDevice):
             "station_id": station_id,
             "enabled": boolean("enabled_feedback"),
             "running": boolean("running"),
-            "speed_rpm": float(integer("speed")),
-            "current_a": real("current"),
+            # 实时显示使用 REAL 转速地址（如 1 号工位 D3724）；整数地址会保持设定值。
+            "speed_rpm": real("speed"),
+            # 地址表未定义缩放倍率；现场原界面按三位数显示，原始 REAL 按 mA 使用。
+            "current_ma": real("current"),
             "pressure": real("pressure"),
             "torque_nm": real("torque"),
             "temperature_1": real("temperature_1"),

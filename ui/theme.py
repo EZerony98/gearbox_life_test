@@ -39,6 +39,7 @@ QFrame#stationCard {
     background: #ffffff; border: 1px solid #d9dee5; border-left: 4px solid #a5afb9; border-radius: 8px;
 }
 QFrame#stationCard[state="running"] { border-left-color: #16875c; }
+QFrame#stationCard[state="paused"] { border-left-color: #d59122; }
 QFrame#stationCard[state="warning"] { border-left-color: #ed8a24; }
 QFrame#stationCard[state="disconnected"] { border-left-color: #9ba4ae; background: #fbfbfc; }
 QFrame#stationCard[selected="true"] { border: 2px solid #d8132f; border-left: 5px solid #d8132f; }
@@ -46,6 +47,7 @@ QLabel#stationNumber { background: transparent; color: #202b3a; font-size: 16px;
 QLabel#elapsedLabel { background: transparent; color: #667588; font-family: Menlo, monospace; }
 QLabel#stationStatus { border-radius: 11px; padding: 4px 9px; font-size: 11px; font-weight: 650; }
 QLabel#stationStatus[state="running"] { background: #def5eb; color: #106d49; }
+QLabel#stationStatus[state="paused"] { background: #fff1d8; color: #9b5d05; }
 QLabel#stationStatus[state="warning"] { background: #fff0df; color: #b75e0d; }
 QLabel#stationStatus[state="standby"] { background: #edf1f5; color: #5e6e7f; }
 QLabel#stationStatus[state="disabled"] { background: #f1f2f4; color: #818b95; }
@@ -62,11 +64,17 @@ QSpinBox, QDoubleSpinBox, QComboBox {
     min-height: 25px; background: #ffffff; color: #26364a; border: 1px solid #ccd3dc; border-radius: 4px; padding: 0 4px;
 }
 QPushButton#applyButton { min-height: 27px; color: #a70d26; background: #fff1f3; border: 1px solid #edbec6; border-radius: 4px; padding: 0 9px; font-weight: 600; }
-QPushButton#stationStartButton, QPushButton#stationStopButton { min-height: 29px; border-radius: 5px; padding: 0 14px; font-weight: 650; }
+QPushButton#stationEnableButton, QPushButton#stationStartButton, QPushButton#stationPauseButton, QPushButton#stationStopButton { min-height: 29px; border-radius: 5px; padding: 0 11px; font-weight: 650; }
+QPushButton#stationEnableButton { color: #ffffff; background: #35465a; border: 1px solid #35465a; }
+QPushButton#stationEnableButton[stationEnabled="true"] { color: #a65409; background: #fff5e6; border: 1px solid #edc994; }
 QPushButton#stationStartButton { color: white; background: #14865b; border: 1px solid #14865b; }
+QPushButton#stationPauseButton { color: #98600d; background: #fff6e7; border: 1px solid #e7c98d; }
+QPushButton#stationPauseButton[paused="true"] { color: #ffffff; background: #2b6fa3; border: 1px solid #2b6fa3; }
 QPushButton#stationStopButton { color: #b1122a; background: #fff3f5; border: 1px solid #e8b9c1; }
 QPushButton#applyButton:disabled,
+QPushButton#stationEnableButton:disabled,
 QPushButton#stationStartButton:disabled,
+QPushButton#stationPauseButton:disabled,
 QPushButton#stationStopButton:disabled,
 QPushButton#startAllButton:disabled,
 QPushButton#stopAllButton:disabled {

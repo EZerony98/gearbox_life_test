@@ -16,7 +16,7 @@ class DataServiceTests(unittest.TestCase):
             "station_id": station_id,
             "product_sn": "GBX-SN-001",
             "speed_rpm": 1500.1,
-            "current_a": 2.25,
+            "current_ma": 2250.0,
             "pressure": 120.0,
             "torque_nm": 4.5,
             "temperature_1_c": 42.1,
@@ -45,6 +45,7 @@ class DataServiceTests(unittest.TestCase):
                 rows = list(csv.DictReader(csv_file))
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["product_sn"], "GBX-SN-001")
+            self.assertEqual(rows[0]["current_ma"], "2250.0")
             metadata = json.loads(
                 (session_dir / "test_info.json").read_text(encoding="utf-8")
             )

@@ -9,7 +9,7 @@ def plc_snapshot(**overrides: object) -> dict:
         "running": True,
         "elapsed_seconds": 1,
         "speed_rpm": 1480.0,
-        "current_a": 1.92,
+        "current_ma": 1920.0,
         "pressure": 112.4,
         "torque_nm": 3.96,
         "temperature_1": 41.2,
@@ -34,6 +34,7 @@ class StationStateTests(unittest.TestCase):
         self.assertTrue(state.connected)
         self.assertEqual(state.sample_count, 1)
         self.assertEqual(state.realtime.speed_rpm, 1480.0)
+        self.assertEqual(state.realtime.current_ma, 1920.0)
         self.assertEqual(len(state.history["minutes"]), 1)
 
     def test_warning_uses_temperature_limit(self) -> None:
@@ -56,6 +57,36 @@ class StationStateTests(unittest.TestCase):
             state.apply_plc_snapshot(plc_snapshot(elapsed_seconds=second))
         self.assertEqual(state.sample_count, 12)
         self.assertLessEqual(len(state.history["minutes"]), 4)
+
+    def test_pause_stops_recording_until_resumed(self) -> None:
+        state = StationState(1, "TEST-001")
+        state.apply_plc_snapshot(plc_snapshot())
+        state.mark_paused()
+        state.apply_plc_snapshot(plc_snapshot(elapsed_seconds=2))
+        self.assertTrue(state.paused)
+        self.assertFalse(state.running)
+        self.assertEqual(state.sample_count, 1)
+        self.assertEqual(state.status_text, "测试已暂停")
+
+        state.mark_resumed()
+        state.apply_plc_snapshot(plc_snapshot(elapsed_seconds=3))
+        self.assertFalse(state.paused)
+        self.assertTrue(state.running)
+        self.assertEqual(state.sample_count, 2)
+
+    def test_stop_clears_sn_and_ignores_stale_running_feedback(self) -> None:
+        state = StationState(1, "TEST-001")
+        state.apply_plc_snapshot(plc_snapshot())
+        state.mark_stopped()
+        state.apply_plc_snapshot(plc_snapshot(elapsed_seconds=2, running=True))
+        self.assertEqual(state.serial_number, "")
+        self.assertFalse(state.running)
+        self.assertEqual(state.sample_count, 1)
+
+        state.apply_plc_snapshot(plc_snapshot(elapsed_seconds=2, running=False))
+        state.apply_plc_snapshot(plc_snapshot(elapsed_seconds=3, running=True))
+        self.assertTrue(state.running)
+        self.assertEqual(state.sample_count, 2)
 
 
 if __name__ == "__main__":

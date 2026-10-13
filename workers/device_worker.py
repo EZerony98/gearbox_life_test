@@ -81,6 +81,28 @@ class DeviceWorker(QObject):
             "启动指令已写入 PLC" if running else "停止指令已写入 PLC",
         )
 
+    @Slot(int, bool)
+    def set_paused(self, station_id: int, paused: bool) -> None:
+        """暂停与继续复用 PLC 的 start_stop 位。"""
+
+        self._run_operation(
+            "pause" if paused else "resume",
+            station_id,
+            lambda: self.device.set_station_running(station_id, not paused),
+            "暂停指令已写入 PLC" if paused else "继续指令已写入 PLC",
+        )
+
+    @Slot(int, bool)
+    def set_enabled(self, station_id: int, enabled: bool) -> None:
+        self._run_operation(
+            "enable" if enabled else "disable",
+            station_id,
+            lambda: self.device.set_station_enabled(station_id, enabled),
+            "工位使能指令已写入 PLC"
+            if enabled
+            else "工位停用指令已写入 PLC",
+        )
+
     @Slot()
     def stop(self) -> None:
         self._stopping = True

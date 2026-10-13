@@ -22,7 +22,7 @@ class StationRealtime:
     """单工位从 PLC 读取的实时采样值。"""
 
     speed_rpm: float = 0.0
-    current_a: float = 0.0
+    current_ma: float = 0.0
     pressure: float = 0.0
     torque_nm: float = 0.0
     temperature_1: float = 0.0
@@ -35,6 +35,7 @@ class StationState:
     """单工位状态与用于界面缩略图的抽样历史。"""
 
     MAX_HISTORY_POINTS = 20_000
+    CURRENT_CHART_RANGE_MA = 3500.0
 
     station_id: int
     serial_number: str = ""
@@ -43,6 +44,7 @@ class StationState:
     connected: bool = False
     enabled: bool = False
     running: bool = False
+    paused: bool = False
     warning: bool = False
     elapsed_seconds: int = 0
     sample_count: int = 0
@@ -55,6 +57,7 @@ class StationState:
             "temperature": [],
         }
     )
+    _stop_latched: bool = field(default=False, init=False, repr=False)
 
     @property
     def status_text(self) -> str:
@@ -64,6 +67,8 @@ class StationState:
             return "温度告警"
         if self.running:
             return "测试运行中"
+        if self.paused:
+            return "测试已暂停"
         if self.enabled:
             return "待机"
         return "工位未使能"
@@ -76,6 +81,8 @@ class StationState:
             return "warning"
         if self.running:
             return "running"
+        if self.paused:
+            return "paused"
         if self.enabled:
             return "standby"
         return "disabled"
@@ -86,18 +93,57 @@ class StationState:
         self.connected = False
         self.enabled = False
         self.running = False
+        self.paused = False
         self.warning = False
+        self._stop_latched = False
+
+    def mark_start_requested(self) -> None:
+        """PLC 已接受启动指令，等待真实运行反馈。"""
+
+        self.paused = False
+        self._stop_latched = False
+
+    def mark_paused(self) -> None:
+        """暂停后立即停止界面计数和 CSV 记录。"""
+
+        self.paused = True
+        self.running = False
+        self.warning = False
+        self._stop_latched = False
+
+    def mark_resumed(self) -> None:
+        """PLC 已接受继续指令，等待真实运行反馈后恢复记录。"""
+
+        self.paused = False
+        self.running = False
+        self.warning = False
+        self._stop_latched = False
+
+    def mark_stopped(self) -> None:
+        """停止测试并锁住运行态，直到 PLC 确认运行位已经复位。"""
+
+        self.serial_number = ""
+        self.paused = False
+        self.running = False
+        self.warning = False
+        self._stop_latched = True
 
     def apply_plc_snapshot(self, snapshot: Mapping[str, object], record: bool = True) -> None:
         """应用一次真实 PLC 快照，不生成或补造任何测量值。"""
 
         self.connected = True
         self.enabled = bool(snapshot.get("enabled", False))
-        self.running = bool(snapshot.get("running", False))
+        plc_running = bool(snapshot.get("running", False))
+        if self._stop_latched:
+            if not plc_running:
+                self._stop_latched = False
+            self.running = False
+        else:
+            self.running = plc_running and not self.paused
         self.elapsed_seconds = max(0, int(float(snapshot.get("elapsed_seconds", 0))))
         self.realtime = StationRealtime(
             speed_rpm=float(snapshot.get("speed_rpm", 0.0)),
-            current_a=float(snapshot.get("current_a", 0.0)),
+            current_ma=float(snapshot.get("current_ma", 0.0)),
             pressure=float(snapshot.get("pressure", 0.0)),
             torque_nm=float(snapshot.get("torque_nm", 0.0)),
             temperature_1=float(snapshot.get("temperature_1", 0.0)),
@@ -134,8 +180,15 @@ class StationState:
         )
 
         if record and self.running:
-            self.sample_count += 1
-            self._append_history()
+            self.record_sample()
+
+    def record_sample(self) -> None:
+        """按 CSV 记录节拍累计一次样本并更新缩略趋势。"""
+
+        if not self.running:
+            return
+        self.sample_count += 1
+        self._append_history()
 
     def _append_history(self) -> None:
         self.history["minutes"].append(self.elapsed_seconds / 60.0)
@@ -143,7 +196,9 @@ class StationState:
         torque_base = max(self.parameters.torque_target, 0.1)
         temperature_base = max(self.parameters.temperature_high, 1.0)
         self.history["speed"].append(self.realtime.speed_rpm / speed_base * 100.0)
-        self.history["current"].append(self.realtime.current_a / 3.5 * 100.0)
+        self.history["current"].append(
+            self.realtime.current_ma / self.CURRENT_CHART_RANGE_MA * 100.0
+        )
         self.history["torque"].append(
             self.realtime.torque_nm / torque_base * 100.0
         )

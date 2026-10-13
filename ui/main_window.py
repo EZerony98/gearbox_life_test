@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Mapping, Optional
@@ -40,6 +41,8 @@ class MainWindow(QMainWindow):
     storage_start_requested = Signal(dict)
     plc_parameters_requested = Signal(int, dict)
     plc_run_requested = Signal(int, bool)
+    plc_pause_requested = Signal(int, bool)
+    plc_enable_requested = Signal(int, bool)
 
     def __init__(
         self,
@@ -55,6 +58,7 @@ class MainWindow(QMainWindow):
         self.config_service = ConfigService(PROJECT_DIR / "config")
         self.address_config = self.config_service.load("plc_addresses")
         self.device_config = self.config_service.load("devices")
+        self.process_config = self.config_service.load("process")
         self.station_cards: Dict[int, StationCard] = {}
         self.stations: Dict[int, StationState] = {}
         self.history_curves: Dict[str, pg.PlotDataItem] = {}
@@ -67,6 +71,10 @@ class MainWindow(QMainWindow):
         self._storage_ready = False
         self._storage_shutdown = False
         self._csv_sample_count = 0
+        self._sample_interval_seconds = max(
+            1.0, float(self.process_config.get("sample_interval_seconds", 1))
+        )
+        self._last_csv_sample_at: Dict[int, float] = {}
         self._data_thread: Optional[QThread] = None
         self._data_worker: Optional[DataWriterWorker] = None
         self._session_path = ""
@@ -130,10 +138,9 @@ class MainWindow(QMainWindow):
             state = StationState(station_id=station_id)
             self.stations[station_id] = state
             addresses = address_by_station.get(station_id, {})
-            int_addresses = addresses.get("int", {})
             real_addresses = addresses.get("real", {})
             address_hint = (
-                f"转速 {int_addresses.get('speed', '--')}  ·  "
+                f"转速 {real_addresses.get('speed', '--')}  ·  "
                 f"电流 {real_addresses.get('current', '--')}"
             )
             card = StationCard(
@@ -176,7 +183,9 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         for card in self.station_cards.values():
+            card.enable_requested.connect(self._set_station_enabled)
             card.start_requested.connect(self._start_station)
+            card.pause_requested.connect(self._toggle_station_pause)
             card.stop_requested.connect(self._stop_station)
             card.parameters_requested.connect(self._apply_parameters)
             card.product_sn_changed.connect(self._set_product_sn)
@@ -235,6 +244,12 @@ class MainWindow(QMainWindow):
         self.plc_run_requested.connect(
             self._plc_worker.set_running, Qt.ConnectionType.QueuedConnection
         )
+        self.plc_pause_requested.connect(
+            self._plc_worker.set_paused, Qt.ConnectionType.QueuedConnection
+        )
+        self.plc_enable_requested.connect(
+            self._plc_worker.set_enabled, Qt.ConnectionType.QueuedConnection
+        )
         self._plc_thread.start()
         application = QApplication.instance()
         if application is not None:
@@ -265,6 +280,7 @@ class MainWindow(QMainWindow):
 
     def _on_plc_data(self, payload: Dict[str, object]) -> None:
         timestamp = datetime.now().astimezone()
+        monotonic_now = time.monotonic()
         first_snapshot = not self._received_plc_data
         stations = payload.get("stations", [])
         if not isinstance(stations, list):
@@ -276,22 +292,68 @@ class MainWindow(QMainWindow):
             if station_id not in self.stations:
                 continue
             state = self.stations[station_id]
-            state.apply_plc_snapshot(snapshot, record=True)
+            state.apply_plc_snapshot(snapshot, record=False)
+            sample_due = state.running and self._csv_sample_due(
+                station_id, monotonic_now
+            )
+            if sample_due:
+                state.record_sample()
             self.station_cards[station_id].set_state(
                 state, sync_parameters=first_snapshot
             )
-            if state.running and self._storage_ready:
+            if sample_due and self._storage_ready:
                 self.sample_for_storage.emit(self._sample_record(state, timestamp))
                 self._csv_sample_count += 1
         self._received_plc_data = True
         self._update_summary()
         self._refresh_history_plot()
 
+    def _csv_sample_due(self, station_id: int, now: float) -> bool:
+        """界面可高频刷新，但每个工位的 CSV 最快仍为每秒一条。"""
+
+        last_sample_at = self._last_csv_sample_at.get(station_id)
+        if last_sample_at is None:
+            self._last_csv_sample_at[station_id] = now
+            return True
+        tolerance = min(0.05, self._sample_interval_seconds * 0.1)
+        elapsed = now - last_sample_at
+        if elapsed < self._sample_interval_seconds - tolerance:
+            return False
+        if elapsed >= self._sample_interval_seconds * 2:
+            self._last_csv_sample_at[station_id] = now
+        else:
+            self._last_csv_sample_at[station_id] = (
+                last_sample_at + self._sample_interval_seconds
+            )
+        return True
+
     def _on_plc_operation_finished(
         self, operation: str, station_id: int, succeeded: bool, message: str
     ) -> None:
-        names = {"start": "启动", "stop": "停止", "parameters": "参数写入"}
+        names = {
+            "enable": "启用",
+            "disable": "停用",
+            "start": "启动",
+            "pause": "暂停",
+            "resume": "继续",
+            "stop": "停止",
+            "parameters": "参数写入",
+        }
         action = names.get(operation, operation)
+        if succeeded and station_id in self.stations:
+            state = self.stations[station_id]
+            if operation == "start":
+                state.mark_start_requested()
+            elif operation == "pause":
+                state.mark_paused()
+            elif operation == "resume":
+                state.mark_resumed()
+            elif operation == "stop":
+                state.mark_stopped()
+                self._last_csv_sample_at.pop(station_id, None)
+                self.station_cards[station_id].serial_edit.clear()
+            self.station_cards[station_id].set_state(state)
+            self._update_summary()
         level = "INFO" if succeeded else "ERROR"
         self._add_event(
             f"{station_id:02d} 号工位",
@@ -333,6 +395,38 @@ class MainWindow(QMainWindow):
         state.serial_number = product_sn
         self.plc_run_requested.emit(station_id, True)
 
+    def _toggle_station_pause(self, station_id: int, paused: bool) -> None:
+        state = self.stations[station_id]
+        if not self._plc_connected:
+            self._add_event(
+                f"{station_id:02d} 号工位",
+                "PLC 未连接，不能暂停或继续测试",
+                level="WARNING",
+            )
+            return
+        if not state.enabled:
+            self._add_event(
+                f"{station_id:02d} 号工位",
+                "PLC 反馈工位未使能",
+                level="WARNING",
+            )
+            return
+        if paused and not state.running:
+            return
+        if not paused and not state.paused:
+            return
+        self.plc_pause_requested.emit(station_id, paused)
+
+    def _set_station_enabled(self, station_id: int, enabled: bool) -> None:
+        if not self._plc_connected:
+            self._add_event(
+                f"{station_id:02d} 号工位",
+                "PLC 未连接，不能切换工位使能",
+                level="WARNING",
+            )
+            return
+        self.plc_enable_requested.emit(station_id, enabled)
+
     def _stop_station(self, station_id: int) -> None:
         if not self._plc_connected:
             self._add_event(
@@ -372,11 +466,11 @@ class MainWindow(QMainWindow):
     def _set_product_sn(self, station_id: int, product_sn: str) -> None:
         state = self.stations[station_id]
         product_sn = product_sn.strip()
-        if state.running and product_sn != state.serial_number:
+        if (state.running or state.paused) and product_sn != state.serial_number:
             self.station_cards[station_id].serial_edit.setText(state.serial_number)
             self._add_event(
                 f"{station_id:02d} 号工位",
-                "测试运行中不能更换产品 SN，请先停止测试",
+                "测试运行或暂停期间不能更换产品 SN，请先停止测试",
                 level="WARNING",
             )
             return
@@ -432,8 +526,7 @@ class MainWindow(QMainWindow):
             self.event_for_storage.emit(source, message, level)
 
     def _setup_data_storage(self, data_dir: Path) -> None:
-        process_config = self.config_service.load("process")
-        storage_config = process_config.get("storage", {})
+        storage_config = self.process_config.get("storage", {})
         service = DataService(
             data_dir,
             flush_interval_seconds=int(
@@ -471,7 +564,7 @@ class MainWindow(QMainWindow):
                 "test_name": "齿轮箱寿命测试",
                 "station_count": 6,
                 "sample_interval_seconds": int(
-                    process_config.get("sample_interval_seconds", 1)
+                    self.process_config.get("sample_interval_seconds", 1)
                 ),
                 "mode": "real_plc",
                 "plc_protocol": "FINS/UDP",
@@ -506,7 +599,7 @@ class MainWindow(QMainWindow):
             "station_id": state.station_id,
             "product_sn": state.serial_number,
             "speed_rpm": round(realtime.speed_rpm, 3),
-            "current_a": round(realtime.current_a, 4),
+            "current_ma": round(realtime.current_ma, 4),
             "pressure": round(realtime.pressure, 4),
             "torque_nm": round(realtime.torque_nm, 4),
             "temperature_1_c": round(realtime.temperature_1, 3),

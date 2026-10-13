@@ -31,8 +31,8 @@ class MetricTile(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(7, 4, 7, 4)
         layout.setSpacing(0)
-        name_label = QLabel(name, self)
-        name_label.setObjectName("metricName")
+        self.name_label = QLabel(name, self)
+        self.name_label.setObjectName("metricName")
         value_row = QHBoxLayout()
         value_row.setSpacing(3)
         self.value_label = QLabel("--", self)
@@ -43,7 +43,7 @@ class MetricTile(QFrame):
         value_row.addWidget(self.value_label)
         value_row.addWidget(unit_label)
         value_row.addStretch()
-        layout.addWidget(name_label)
+        layout.addWidget(self.name_label)
         layout.addLayout(value_row)
 
     def set_value(self, value: str) -> None:
@@ -51,7 +51,9 @@ class MetricTile(QFrame):
 
 
 class StationCard(QFrame):
+    enable_requested = Signal(int, bool)
     start_requested = Signal(int)
+    pause_requested = Signal(int, bool)
     stop_requested = Signal(int)
     parameters_requested = Signal(int, dict)
     product_sn_changed = Signal(int, str)
@@ -66,6 +68,8 @@ class StationCard(QFrame):
         self.setMinimumSize(360, 278)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._metrics: Dict[str, MetricTile] = {}
+        self._station_enabled = False
+        self._station_paused = False
         self._build_ui(address_hint)
 
     def _build_ui(self, address_hint: str) -> None:
@@ -105,13 +109,13 @@ class StationCard(QFrame):
         metrics.setHorizontalSpacing(5)
         metrics.setVerticalSpacing(5)
         definitions = (
-            ("speed", "转速", "rpm"),
-            ("current", "电流", "A"),
-            ("torque", "扭矩", "N·m"),
-            ("pressure", "压力", ""),
-            ("temperature_1", "温度 1", "℃"),
-            ("temperature_2", "温度 2", "℃"),
-            ("temperature_3", "温度 3", "℃"),
+            ("speed", "实时转速", "rpm"),
+            ("current", "实时电流", "mA"),
+            ("torque", "实时扭矩", "N·m"),
+            ("pressure", "实时压力", ""),
+            ("temperature_1", "电机温度", "℃"),
+            ("temperature_2", "齿轮箱温度", "℃"),
+            ("temperature_3", "制动器温度", "℃"),
             ("records", "记录点", "条"),
         )
         for index, (key, name, unit) in enumerate(definitions):
@@ -139,7 +143,7 @@ class StationCard(QFrame):
         parameter_grid.setHorizontalSpacing(5)
         parameter_grid.setVerticalSpacing(2)
         self.speed_spin = QSpinBox(parameter_panel)
-        self.speed_spin.setRange(0, 6000)
+        self.speed_spin.setRange(0, 12000)
         self.speed_spin.setSingleStep(50)
         self.speed_spin.setSuffix(" rpm")
         self.torque_spin = QDoubleSpinBox(parameter_panel)
@@ -172,22 +176,38 @@ class StationCard(QFrame):
 
         footer = QHBoxLayout()
         footer.setSpacing(6)
-        address_label = QLabel(address_hint, self)
-        address_label.setObjectName("addressHint")
+        self.address_label = QLabel(address_hint, self)
+        self.address_label.setObjectName("addressHint")
+        self.enable_button = QPushButton("启用工位", self)
+        self.enable_button.setObjectName("stationEnableButton")
+        self.enable_button.setProperty("stationEnabled", False)
         self.start_button = QPushButton("启动测试", self)
         self.start_button.setObjectName("stationStartButton")
+        self.pause_button = QPushButton("暂停", self)
+        self.pause_button.setObjectName("stationPauseButton")
+        self.pause_button.setProperty("paused", False)
         self.stop_button = QPushButton("停止", self)
         self.stop_button.setObjectName("stationStopButton")
-        footer.addWidget(address_label)
+        footer.addWidget(self.address_label)
         footer.addStretch()
+        footer.addWidget(self.enable_button)
         footer.addWidget(self.start_button)
+        footer.addWidget(self.pause_button)
         footer.addWidget(self.stop_button)
         root.addLayout(footer)
 
+        self.enable_button.clicked.connect(self._emit_enable_request)
         self.start_button.clicked.connect(lambda: self.start_requested.emit(self.station_id))
+        self.pause_button.clicked.connect(self._emit_pause_request)
         self.stop_button.clicked.connect(lambda: self.stop_requested.emit(self.station_id))
         self.apply_button.clicked.connect(self._emit_parameters)
         self.serial_edit.editingFinished.connect(self._emit_product_sn)
+
+    def _emit_enable_request(self) -> None:
+        self.enable_requested.emit(self.station_id, not self._station_enabled)
+
+    def _emit_pause_request(self) -> None:
+        self.pause_requested.emit(self.station_id, not self._station_paused)
 
     def _emit_product_sn(self) -> None:
         self.product_sn_changed.emit(self.station_id, self.serial_edit.text().strip())
@@ -224,9 +244,9 @@ class StationCard(QFrame):
             self.temp_low_spin.setValue(state.parameters.temperature_low)
         if state.connected:
             self._metrics["speed"].set_value(f"{state.realtime.speed_rpm:,.0f}")
-            self._metrics["current"].set_value(f"{state.realtime.current_a:.2f}")
-            self._metrics["torque"].set_value(f"{state.realtime.torque_nm:.2f}")
-            self._metrics["pressure"].set_value(f"{state.realtime.pressure:.1f}")
+            self._metrics["current"].set_value(f"{state.realtime.current_ma:,.0f}")
+            self._metrics["torque"].set_value(f"{state.realtime.torque_nm:.4f}")
+            self._metrics["pressure"].set_value(f"{state.realtime.pressure:.4f}")
             self._metrics["temperature_1"].set_value(
                 f"{state.realtime.temperature_1:.1f}"
             )
@@ -242,18 +262,33 @@ class StationCard(QFrame):
                 metric.set_value("--")
 
         can_operate = state.connected and state.enabled
-        self.start_button.setEnabled(can_operate and not state.running)
-        self.stop_button.setEnabled(can_operate and state.running)
-        self.apply_button.setEnabled(can_operate and not state.running)
-        self.serial_edit.setEnabled(not state.running)
+        test_active = state.running or state.paused
+        self._station_enabled = state.enabled
+        self._station_paused = state.paused
+        self.enable_button.setText("停用工位" if state.enabled else "启用工位")
+        self.enable_button.setProperty("stationEnabled", state.enabled)
+        self.enable_button.setEnabled(state.connected)
+        self.start_button.setEnabled(can_operate and not test_active)
+        self.pause_button.setText("继续" if state.paused else "暂停")
+        self.pause_button.setProperty("paused", state.paused)
+        self.pause_button.setEnabled(can_operate and test_active)
+        self.stop_button.setEnabled(can_operate and test_active)
+        self.apply_button.setEnabled(can_operate and not test_active)
+        self.serial_edit.setEnabled(not test_active)
         unavailable_hint = "" if state.connected else "PLC 未连接，设备操作已锁定"
         self.start_button.setToolTip(unavailable_hint)
+        self.pause_button.setToolTip(unavailable_hint)
         self.stop_button.setToolTip(unavailable_hint)
         self.apply_button.setToolTip(unavailable_hint)
+        self.enable_button.setToolTip(unavailable_hint)
         self.style().unpolish(self)
         self.style().polish(self)
         self.status_label.style().unpolish(self.status_label)
         self.status_label.style().polish(self.status_label)
+        self.enable_button.style().unpolish(self.enable_button)
+        self.enable_button.style().polish(self.enable_button)
+        self.pause_button.style().unpolish(self.pause_button)
+        self.pause_button.style().polish(self.pause_button)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         self.selected.emit(self.station_id)

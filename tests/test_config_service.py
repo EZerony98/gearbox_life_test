@@ -11,6 +11,8 @@ class ConfigServiceTests(unittest.TestCase):
         config = ConfigService(config_dir).load_all()
         self.assertEqual(set(config), set(ConfigService.CONFIG_NAMES))
         self.assertIn("application", config["app"])
+        self.assertEqual(config["devices"]["plc"]["poll_interval_ms"], 250)
+        self.assertEqual(config["process"]["sample_interval_seconds"], 1)
 
     def test_unknown_config_name_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_dir:
@@ -21,4 +23,3 @@ class ConfigServiceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

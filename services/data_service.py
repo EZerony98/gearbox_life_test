@@ -22,7 +22,7 @@ class DataService:
         "station_id",
         "product_sn",
         "speed_rpm",
-        "current_a",
+        "current_ma",
         "pressure",
         "torque_nm",
         "temperature_1_c",
@@ -236,4 +236,3 @@ class DataService:
     def _require_session(self) -> None:
         if self.session_dir is None:
             raise RuntimeError("数据记录会话尚未启动")
-
