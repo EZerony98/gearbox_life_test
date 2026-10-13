@@ -1,0 +1,19 @@
+{
+  "application": {
+    "name": "gearbox_life_test",
+    "window_title": "齿轮箱寿命测试台",
+    "language": "zh_CN"
+  },
+  "logging": {
+    "level": "INFO",
+    "directory": "logs"
+  },
+  "data": {
+    "directory": "data"
+  },
+  "paths": {
+    "data": "data",
+    "logs": "logs",
+    "exports": "exports"
+  }
+}

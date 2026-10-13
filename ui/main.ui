@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>1720</width><height>1000</height></rect>
+  </property>
+  <property name="minimumSize"><size><width>1180</width><height>720</height></size></property>
+  <property name="windowTitle"><string>齿轮箱寿命测试台</string></property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="rootLayout">
+    <property name="spacing"><number>0</number></property>
+    <property name="leftMargin"><number>0</number></property>
+    <property name="topMargin"><number>0</number></property>
+    <property name="rightMargin"><number>0</number></property>
+    <property name="bottomMargin"><number>0</number></property>
+    <item>
+     <widget class="QFrame" name="headerFrame">
+      <property name="minimumSize"><size><width>0</width><height>78</height></size></property>
+      <property name="maximumSize"><size><width>16777215</width><height>78</height></size></property>
+      <layout class="QHBoxLayout" name="headerLayout">
+       <property name="leftMargin"><number>22</number></property>
+       <property name="rightMargin"><number>22</number></property>
+       <item><widget class="QLabel" name="brandMark"><property name="text"><string>G</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
+       <item>
+        <layout class="QVBoxLayout" name="titleLayout">
+         <property name="spacing"><number>1</number></property>
+         <item><widget class="QLabel" name="titleLabel"><property name="text"><string>齿轮箱寿命测试台</string></property></widget></item>
+         <item><widget class="QLabel" name="subtitleLabel"><property name="text"><string>GEARBOX ENDURANCE TEST PLATFORM · 6 STATIONS</string></property></widget></item>
+        </layout>
+       </item>
+       <item><spacer name="headerSpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+       <item><widget class="QLabel" name="demoBadge"><property name="text"><string>界面演示 · 模拟数据</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
+       <item><widget class="QLabel" name="clockLabel"><property name="minimumSize"><size><width>142</width><height>34</height></size></property><property name="text"><string>2026-10-10 14:30:00</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
+       <item><widget class="QLabel" name="plcStatusLabel"><property name="text"><string>● PLC 未连接</string></property></widget></item>
+       <item><widget class="QPushButton" name="settingsButton"><property name="text"><string>系统设置</string></property></widget></item>
+       <item><widget class="QPushButton" name="startAllButton"><property name="text"><string>全部启动</string></property></widget></item>
+       <item><widget class="QPushButton" name="stopAllButton"><property name="text"><string>全部停止</string></property></widget></item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="contentWidget">
+      <layout class="QVBoxLayout" name="contentLayout">
+       <property name="spacing"><number>12</number></property>
+       <property name="leftMargin"><number>16</number></property>
+       <property name="topMargin"><number>14</number></property>
+       <property name="rightMargin"><number>16</number></property>
+       <property name="bottomMargin"><number>12</number></property>
+       <item>
+        <widget class="QFrame" name="summaryFrame">
+         <property name="minimumSize"><size><width>0</width><height>58</height></size></property>
+         <property name="maximumSize"><size><width>16777215</width><height>58</height></size></property>
+         <layout class="QHBoxLayout" name="summaryLayout">
+          <property name="leftMargin"><number>14</number></property><property name="rightMargin"><number>14</number></property>
+          <item><widget class="QLabel" name="pageTitle"><property name="text"><string>工位实时监控</string></property></widget></item>
+          <item><widget class="QLabel" name="pageHint"><property name="text"><string>产品 SN 与参数独立设定 · 秒级数据按工位写入 CSV</string></property></widget></item>
+          <item><spacer name="summarySpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+          <item><widget class="QLabel" name="stationTotalLabel"><property name="text"><string>工位  6</string></property></widget></item>
+          <item><widget class="QLabel" name="runningCountLabel"><property name="text"><string>运行  0</string></property></widget></item>
+          <item><widget class="QLabel" name="warningCountLabel"><property name="text"><string>告警  0</string></property></widget></item>
+          <item><widget class="QLabel" name="recordStateLabel"><property name="text"><string>● 数据记录就绪</string></property></widget></item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSplitter" name="mainSplitter">
+         <property name="orientation"><enum>Qt::Vertical</enum></property>
+         <widget class="QScrollArea" name="stationScrollArea">
+          <property name="widgetResizable"><bool>true</bool></property>
+          <property name="frameShape"><enum>QFrame::NoFrame</enum></property>
+          <widget class="QWidget" name="stationScrollContents">
+           <property name="geometry"><rect><x>0</x><y>0</y><width>1664</width><height>560</height></rect></property>
+           <layout class="QGridLayout" name="stationGridLayout">
+            <property name="horizontalSpacing"><number>10</number></property>
+            <property name="verticalSpacing"><number>10</number></property>
+            <property name="leftMargin"><number>0</number></property>
+            <property name="topMargin"><number>0</number></property>
+            <property name="rightMargin"><number>0</number></property>
+            <property name="bottomMargin"><number>0</number></property>
+           </layout>
+          </widget>
+         </widget>
+         <widget class="QFrame" name="overviewFrame">
+          <property name="minimumSize"><size><width>0</width><height>220</height></size></property>
+          <layout class="QHBoxLayout" name="overviewLayout">
+           <property name="spacing"><number>12</number></property>
+           <property name="leftMargin"><number>14</number></property><property name="topMargin"><number>12</number></property><property name="rightMargin"><number>14</number></property><property name="bottomMargin"><number>12</number></property>
+           <item>
+            <widget class="QFrame" name="historyPanel">
+             <layout class="QVBoxLayout" name="historyLayout">
+              <property name="spacing"><number>6</number></property><property name="leftMargin"><number>0</number></property><property name="topMargin"><number>0</number></property><property name="rightMargin"><number>0</number></property><property name="bottomMargin"><number>0</number></property>
+              <item>
+               <layout class="QHBoxLayout" name="historyHeaderLayout">
+                <item><widget class="QLabel" name="historyTitle"><property name="text"><string>全程数据缩略图</string></property></widget></item>
+                <item><widget class="QLabel" name="historyHint"><property name="text"><string>归一化趋势 · 自动保留本次测试全程</string></property></widget></item>
+                <item><spacer name="historySpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+                <item><widget class="QComboBox" name="historyStationCombo"/></item>
+                <item><widget class="QPushButton" name="resetViewButton"><property name="text"><string>适配全程</string></property></widget></item>
+               </layout>
+              </item>
+              <item><widget class="QWidget" name="historyPlotHost"/></item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="eventPanel">
+             <property name="minimumSize"><size><width>360</width><height>0</height></size></property>
+             <property name="maximumSize"><size><width>410</width><height>16777215</height></size></property>
+             <layout class="QVBoxLayout" name="eventLayout">
+              <property name="spacing"><number>6</number></property><property name="leftMargin"><number>12</number></property><property name="topMargin"><number>0</number></property><property name="rightMargin"><number>0</number></property><property name="bottomMargin"><number>0</number></property>
+              <item><widget class="QLabel" name="eventTitle"><property name="text"><string>运行事件</string></property></widget></item>
+              <item><widget class="QListWidget" name="eventList"/></item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

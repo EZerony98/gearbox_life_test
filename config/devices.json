@@ -1,0 +1,27 @@
+{
+  "plc": {
+    "enabled": false,
+    "driver": "fins",
+    "host": "192.168.250.1",
+    "port": 9600,
+    "timeout_seconds": 3
+  },
+  "speed_sensor": {
+    "enabled": false,
+    "port": "",
+    "baudrate": 9600,
+    "timeout_seconds": 1
+  },
+  "power_meter": {
+    "enabled": false,
+    "resource": "",
+    "timeout_seconds": 3
+  },
+  "temperature_sensor": {
+    "enabled": false,
+    "port": "",
+    "baudrate": 9600,
+    "timeout_seconds": 1
+  }
+}
+

@@ -1,0 +1,23 @@
+{
+  "process_name": "默认测试工艺",
+  "sample_interval_seconds": 1,
+  "storage": {
+    "format": "csv",
+    "rotation": "daily_per_station",
+    "flush_interval_seconds": 5,
+    "fsync_interval_seconds": 60,
+    "minimum_free_space_gb": 5
+  },
+  "stages": [
+    {
+      "name": "测试阶段一",
+      "speed_rpm": 1000,
+      "duration_seconds": 60
+    },
+    {
+      "name": "测试阶段二",
+      "speed_rpm": 2000,
+      "duration_seconds": 60
+    }
+  ]
+}

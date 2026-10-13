@@ -1,0 +1,46 @@
+{
+  "source": {
+    "workbook": "地址内容.xlsx",
+    "sheet": "Sheet1",
+    "plc_symbol": "LabVIEWDB",
+    "note": "由用户提供的 Sysmac Studio 元素注释表整理；界面演示版不执行 PLC 写入。"
+  },
+  "stations": [
+    {
+      "station": 1,
+      "bool": {"start_stop": "%D3500.01", "enable": "%D3500.11", "enabled_feedback": "%D3501.05", "upload": "%D3501.15", "running": "%D3502.09", "pressure_comp_write": "%D3503.03", "torque_target_write": "%D3503.13", "temperature_high_write": "%D3504.07", "temperature_low_write": "%D3505.01", "speed_write": "%D3505.11", "acquire": "%D3506.05"},
+      "int": {"speed": "%D3509", "speed_setpoint": "%D3519"},
+      "real": {"current": "%D3702", "pressure": "%D3720", "torque": "%D3722", "speed": "%D3724", "temperature_1": "%D3726", "temperature_2": "%D3728", "temperature_3": "%D3730", "pressure_compensation": "%D3732", "torque_target": "%D3734", "temperature_high": "%D3736", "temperature_low": "%D3738", "elapsed": "%D3842", "pressure_comp_write_value": "%D3882", "torque_target_write_value": "%D3902", "temperature_high_write_value": "%D3922", "temperature_low_write_value": "%D3942"}
+    },
+    {
+      "station": 2,
+      "bool": {"start_stop": "%D3500.02", "enable": "%D3500.12", "enabled_feedback": "%D3501.06", "upload": "%D3502.00", "running": "%D3502.10", "pressure_comp_write": "%D3503.04", "torque_target_write": "%D3503.14", "temperature_high_write": "%D3504.08", "temperature_low_write": "%D3505.02", "speed_write": "%D3505.12", "acquire": "%D3506.06"},
+      "int": {"speed": "%D3510", "speed_setpoint": "%D3520"},
+      "real": {"current": "%D3704", "pressure": "%D3740", "torque": "%D3742", "speed": "%D3744", "temperature_1": "%D3746", "temperature_2": "%D3748", "temperature_3": "%D3750", "pressure_compensation": "%D3752", "torque_target": "%D3754", "temperature_high": "%D3756", "temperature_low": "%D3758", "elapsed": "%D3844", "pressure_comp_write_value": "%D3884", "torque_target_write_value": "%D3904", "temperature_high_write_value": "%D3924", "temperature_low_write_value": "%D3944"}
+    },
+    {
+      "station": 3,
+      "bool": {"start_stop": "%D3500.03", "enable": "%D3500.13", "enabled_feedback": "%D3501.07", "upload": "%D3502.01", "running": "%D3502.11", "pressure_comp_write": "%D3503.05", "torque_target_write": "%D3503.15", "temperature_high_write": "%D3504.09", "temperature_low_write": "%D3505.03", "speed_write": "%D3505.13", "acquire": "%D3506.07"},
+      "int": {"speed": "%D3511", "speed_setpoint": "%D3521"},
+      "real": {"current": "%D3706", "pressure": "%D3760", "torque": "%D3762", "speed": "%D3764", "temperature_1": "%D3766", "temperature_2": "%D3768", "temperature_3": "%D3770", "pressure_compensation": "%D3772", "torque_target": "%D3774", "temperature_high": "%D3776", "temperature_low": "%D3778", "elapsed": "%D3846", "pressure_comp_write_value": "%D3886", "torque_target_write_value": "%D3906", "temperature_high_write_value": "%D3926", "temperature_low_write_value": "%D3946"}
+    },
+    {
+      "station": 4,
+      "bool": {"start_stop": "%D3500.04", "enable": "%D3500.14", "enabled_feedback": "%D3501.08", "upload": "%D3502.02", "running": "%D3502.12", "pressure_comp_write": "%D3503.06", "torque_target_write": "%D3504.00", "temperature_high_write": "%D3504.10", "temperature_low_write": "%D3505.04", "speed_write": "%D3505.14", "acquire": "%D3506.08"},
+      "int": {"speed": "%D3512", "speed_setpoint": "%D3522"},
+      "real": {"current": "%D3708", "pressure": "%D3780", "torque": "%D3782", "speed": "%D3784", "temperature_1": "%D3786", "temperature_2": "%D3788", "temperature_3": "%D3790", "pressure_compensation": "%D3792", "torque_target": "%D3794", "temperature_high": "%D3796", "temperature_low": "%D3798", "elapsed": "%D3848", "pressure_comp_write_value": "%D3888", "torque_target_write_value": "%D3908", "temperature_high_write_value": "%D3928", "temperature_low_write_value": "%D3948"}
+    },
+    {
+      "station": 5,
+      "bool": {"start_stop": "%D3500.05", "enable": "%D3500.15", "enabled_feedback": "%D3501.09", "upload": "%D3502.03", "running": "%D3502.13", "pressure_comp_write": "%D3503.07", "torque_target_write": "%D3504.01", "temperature_high_write": "%D3504.11", "temperature_low_write": "%D3505.05", "speed_write": "%D3505.15", "acquire": "%D3506.09"},
+      "int": {"speed": "%D3513", "speed_setpoint": "%D3523"},
+      "real": {"current": "%D3710", "pressure": "%D3800", "torque": "%D3802", "speed": "%D3804", "temperature_1": "%D3806", "temperature_2": "%D3808", "temperature_3": "%D3810", "pressure_compensation": "%D3812", "torque_target": "%D3814", "temperature_high": "%D3816", "temperature_low": "%D3818", "elapsed": "%D3850", "pressure_comp_write_value": "%D3890", "torque_target_write_value": "%D3910", "temperature_high_write_value": "%D3930", "temperature_low_write_value": "%D3950"}
+    },
+    {
+      "station": 6,
+      "bool": {"start_stop": "%D3500.06", "enable": "%D3501.00", "enabled_feedback": "%D3501.10", "upload": "%D3502.04", "running": "%D3502.14", "pressure_comp_write": "%D3503.08", "torque_target_write": "%D3504.02", "temperature_high_write": "%D3504.12", "temperature_low_write": "%D3505.06", "speed_write": "%D3506.00", "acquire": "%D3506.10"},
+      "int": {"speed": "%D3514", "speed_setpoint": "%D3524"},
+      "real": {"current": "%D3712", "pressure": "%D3820", "torque": "%D3822", "speed": "%D3824", "temperature_1": "%D3826", "temperature_2": "%D3828", "temperature_3": "%D3830", "pressure_compensation": "%D3832", "torque_target": "%D3834", "temperature_high": "%D3836", "temperature_low": "%D3838", "elapsed": "%D3852", "pressure_comp_write_value": "%D3892", "torque_target_write_value": "%D3912", "temperature_high_write_value": "%D3932", "temperature_low_write_value": "%D3952"}
+    }
+  ]
+}
