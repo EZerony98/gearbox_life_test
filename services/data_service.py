@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
+import re
 import shutil
 import time
 from datetime import datetime
@@ -13,7 +15,7 @@ from typing import Any, Dict, IO, Optional, Tuple
 
 
 class DataService:
-    """在后台线程中持续写入按工位、按日期分段的 CSV 文件。"""
+    """在后台线程中持续写入按工位、产品 SN 分段的 CSV 文件。"""
 
     SAMPLE_FIELDS = (
         "sample_no",
@@ -58,7 +60,7 @@ class DataService:
         self._metadata: Dict[str, Any] = {}
         self._files: Dict[int, IO[str]] = {}
         self._writers: Dict[int, csv.DictWriter] = {}
-        self._file_dates: Dict[int, str] = {}
+        self._file_products: Dict[int, str] = {}
         self._event_file: Optional[IO[str]] = None
         self._event_writer: Optional[csv.DictWriter] = None
         self._last_flush = time.monotonic()
@@ -82,7 +84,7 @@ class DataService:
                 "started_at": started_at.isoformat(timespec="seconds"),
                 "status": "running",
                 "storage_format": "CSV",
-                "rotation": "station_and_local_date",
+                "rotation": "station_and_product_sn",
                 "sample_fields": list(self.SAMPLE_FIELDS),
             }
         )
@@ -97,9 +99,8 @@ class DataService:
         self._require_session()
         self._check_free_space()
         station_id = int(sample["station_id"])
-        timestamp = str(sample.get("timestamp_local") or "")
-        local_date = timestamp[:10] if len(timestamp) >= 10 else datetime.now().date().isoformat()
-        writer = self._station_writer(station_id, local_date)
+        product_sn = str(sample.get("product_sn") or "").strip()
+        writer = self._station_writer(station_id, product_sn)
         writer.writerow({field: sample.get(field, "") for field in self.SAMPLE_FIELDS})
         self._sample_count += 1
         self._flush_if_due()
@@ -128,7 +129,7 @@ class DataService:
             file_handle.close()
         self._files.clear()
         self._writers.clear()
-        self._file_dates.clear()
+        self._file_products.clear()
         if self._event_file is not None:
             self._event_file.close()
             self._event_file = None
@@ -144,10 +145,11 @@ class DataService:
         )
         self._write_metadata()
 
-    def _station_writer(self, station_id: int, local_date: str) -> csv.DictWriter:
+    def _station_writer(self, station_id: int, product_sn: str) -> csv.DictWriter:
         if self.session_dir is None:
             raise RuntimeError("数据记录会话尚未启动")
-        if self._file_dates.get(station_id) == local_date:
+        product_file_stem = self._safe_product_file_stem(product_sn)
+        if self._file_products.get(station_id) == product_file_stem:
             return self._writers[station_id]
         old_file = self._files.pop(station_id, None)
         if old_file is not None:
@@ -157,12 +159,27 @@ class DataService:
         self._writers.pop(station_id, None)
         station_dir = self.session_dir / f"station_{station_id:02d}"
         station_dir.mkdir(parents=True, exist_ok=True)
-        path = station_dir / f"{local_date}.csv"
+        path = station_dir / f"{product_file_stem}.csv"
         file_handle, writer = self._open_csv(path, self.SAMPLE_FIELDS)
         self._files[station_id] = file_handle
         self._writers[station_id] = writer
-        self._file_dates[station_id] = local_date
+        self._file_products[station_id] = product_file_stem
         return writer
+
+    @staticmethod
+    def _safe_product_file_stem(product_sn: str) -> str:
+        """把产品 SN 转为安全且可读的文件名，避免路径穿越和非法字符。"""
+        original = product_sn.strip()
+        if not original:
+            return "_NO_SN"
+        safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", original)
+        safe_name = re.sub(r"\s+", "_", safe_name).strip(" ._")
+        if not safe_name:
+            safe_name = "SN"
+        if safe_name == original and len(safe_name) <= 80:
+            return safe_name
+        digest = hashlib.sha256(original.encode("utf-8")).hexdigest()[:8]
+        return f"{safe_name[:68]}__{digest}"
 
     @staticmethod
     def _open_csv(
